@@ -16,8 +16,7 @@ return new class extends Migration
             $table->bigInteger('user_id')->unsigned()->index();
             $table->bigInteger('ref_reminder_id')->unsigned()->index();
             $table->bigInteger('ref_timezone_id')->unsigned()->index();
-            $table->dateTime('last_sent_at')->nullable();
-            $table->enum('status', ['success','inprogress','failed'])->default('inprogress');
+            $table->date('occur_date')->nullable()->comment('the reminders need to send at what date');
             $table->timestamps();
 
             // Assign FK

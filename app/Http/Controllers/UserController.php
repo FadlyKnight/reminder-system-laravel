@@ -29,8 +29,9 @@ class UserController extends Controller
         $refReminder = RefReminder::where('ref_rmndr_type', $request->rmndr_type ?? 'birth-day')->firstOrFail();
         UserReminder::create([
             'user_id' => $user->id,
-            'ref_reminder_id' => $refTimeZone->id ?? 324, // if tz not found then use 'Asia/Bangkok'
-            'ref_timezone_id' => $refReminder->id
+            'ref_reminder_id' =>  $refReminder->id,
+            'ref_timezone_id' => $refTimeZone->id ?? 324, // if tz not found then use 'Asia/Bangkok'
+            'occur_date' => $request->occur_date
         ]);
     }
 

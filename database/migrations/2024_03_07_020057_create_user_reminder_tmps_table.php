@@ -11,13 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ref_reminders', function (Blueprint $table) {
+        Schema::create('user_reminder_tmps', function (Blueprint $table) {
             $table->id();
-            $table->string('ref_rmndr_name');
-            $table->string('ref_rmndr_type');
-            $table->string('ref_rmndr_message');
-            $table->string('ref_rmndr_sent_hour')->default('09:00');
+            $table->bigInteger('user_reminder_id')->unsigned()->index();
+            $table->enum('status', ['success','inprogress','failed'])->default('inprogress');
             $table->timestamps();
+
+            // Assign FK
+            $table->foreign('user_reminder_id')->references('id')->on('user_reminders');
         });
     }
 
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ref_reminders');
+        Schema::dropIfExists('user_reminder_tmps');
     }
 };

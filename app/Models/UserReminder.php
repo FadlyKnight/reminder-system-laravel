@@ -13,7 +13,6 @@ class UserReminder extends Model
         'user_id',
         'ref_reminder_id',
         'ref_timezone_id',
-        'last_sent_at',
-        'status',
+        'occur_date',
     ];
 }
