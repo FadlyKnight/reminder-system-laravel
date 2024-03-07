@@ -12,7 +12,16 @@ class UserReminder extends Model
     protected $fillable = [
         'user_id',
         'ref_reminder_id',
-        'ref_timezone_id',
+        'timezone',
         'occur_date',
     ];
+
+
+    public function user(){
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function refReminder(){
+        return $this->belongsTo(RefReminder::class, 'ref_reminder_id', 'id');
+    }
 }

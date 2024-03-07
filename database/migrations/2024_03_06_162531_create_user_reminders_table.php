@@ -15,14 +15,13 @@ return new class extends Migration
             $table->id();
             $table->bigInteger('user_id')->unsigned()->index();
             $table->bigInteger('ref_reminder_id')->unsigned()->index();
-            $table->bigInteger('ref_timezone_id')->unsigned()->index();
+            $table->string('timezone')->default('Asia/Jakarta');
             $table->date('occur_date')->nullable()->comment('the reminders need to send at what date');
             $table->timestamps();
 
             // Assign FK
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->foreign('ref_reminder_id')->references('id')->on('ref_reminders');
-            $table->foreign('ref_timezone_id')->references('id')->on('ref_timezones');
         });
     }
 

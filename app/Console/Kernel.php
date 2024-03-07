@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use App\Jobs\SendReminderMessageJob;
+use App\Services\SendReminderService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -13,7 +14,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->job(new SendReminderMessageJob())->everyThirtyMinutes();
+        // $schedule->job(new SendReminderMessageJob())->everyTenMinutes();
+        // $schedule->call(function(){
+        //     $sendReminderService = new SendReminderService;
+        //     $sendReminderService->handle();
+        // })->everyTenMinutes();
+        $schedule->command('app:send-reminder-command')->everyTenMinutes();
     }
 
     /**
