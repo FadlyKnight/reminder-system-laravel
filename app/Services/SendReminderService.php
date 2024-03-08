@@ -10,12 +10,13 @@ use App\Services\DigitalEnvisionService;
 use Carbon\Carbon;
 use DateTimeZone;
 use App\Enums\StatusTmp;
+use Illuminate\Support\Facades\Log;
 
 class SendReminderService {
     private $chunks_insert = 100;
     private $chunks_send_mail = 10;
 
-    public function __construct()
+    private function __construct()
     {
         //
     }
@@ -26,28 +27,32 @@ class SendReminderService {
     public function handle(): void
     {
         // remove temporary user reminders passed date
+        Log::info("START : remove all reminder tmp pass date");
         $this->removeUserReminderTmpPassDate();
 
         // remove success tmp
+        Log::info("START : remove all success reminder");
         $this->removeSuccessUserReminderTmp();
 
         // insert user reminder into temporary
+        Log::info("START : prepare user reminder");
         $this->setUserReminderToTemp();
 
         // check has reminders on this date
         if ($this->hasUserReminderCurrentDate()) {
 
             // TODO :
+            Log::info("START : do send email");
             $this->sendRemindersEmail();
         }
     }
 
 
-    public function getListUserTmp(){
+    private function getListUserTmp(){
         return UserReminderTmp::where('status','!=',StatusTmp::SUCCESS)->with('userReminder','userReminder.user','userReminder.refReminder');
     }
 
-    public function sendRemindersEmail(){
+    private function sendRemindersEmail(){
         $digiralService = new DigitalEnvisionService();
 
         $chunks = $this->getListUserTmp()->get()->chunk($this->chunks_send_mail);
@@ -68,16 +73,17 @@ class SendReminderService {
                     $reminderTmp->update([
                         'status' => StatusTmp::FAILED
                     ]);
+                    Log::error('ERROR : Send email '.$response->body());
                 }
             }
         }
     }
 
-    public function getParseMessage(User $user, RefReminder $refReminder){
+    private function getParseMessage(User $user, RefReminder $refReminder){
         return preg_replace('/\{full_name\}/', $user->full_name, $refReminder->ref_rmndr_message);
     }
 
-    public function getListTz(){
+    private function getListTz(){
         // get list all tz
         $timezones = DateTimeZone::listIdentifiers();
 
@@ -96,15 +102,15 @@ class SendReminderService {
         return $timezonesWithNineAM;
     }
 
-    public function hasUserReminderCurrentDate(){
+    private function hasUserReminderCurrentDate(){
         return $this->getUserReminderCurrentDate()->first() != null;
     }
 
-    public function getUserReminderCurrentDate(){
+    private function getUserReminderCurrentDate(){
         return UserReminder::whereMonth('occur_date', now()->month)->whereDay('occur_date', now()->day);
     }
 
-    public function setUserReminderToTemp(){
+    private function setUserReminderToTemp(){
         $userReminders = $this->getUserReminderCurrentDate()
             ->whereIn('timezone', $this->getListTz())
             ->get()->map(function($data){
@@ -117,11 +123,11 @@ class SendReminderService {
         $chunks = $userReminders->chunk($this->chunks_insert);
 
         foreach ($chunks as $chunk) {
-            UserReminderTmp::insert($chunk);
+            UserReminderTmp::insert($chunk->toArray());
         }
     }
 
-    public function removeUserReminderTmpPassDate(){
+    private function removeUserReminderTmpPassDate(){
         $userReminderTmps = UserReminderTmp::query();
         $userReminderTmps = $userReminderTmps->leftJoin('user_reminders', 'user_reminder_tmps.user_reminder_id', '=', 'user_reminders.id');
         $userReminderTmps = $userReminderTmps->whereMonth('user_reminders.occur_date', '<=', now()->month)->whereDay('user_reminders.occur_date','<',now()->day);
@@ -129,7 +135,7 @@ class SendReminderService {
         $userReminderTmps->delete();
     }
 
-    public function removeSuccessUserReminderTmp(){
+    private function removeSuccessUserReminderTmp(){
         $userReminderTmps = UserReminderTmp::query();
         $userReminderTmps = $userReminderTmps->where('user_reminder_tmps.status', StatusTmp::SUCCESS );
         $userReminderTmps->delete();
