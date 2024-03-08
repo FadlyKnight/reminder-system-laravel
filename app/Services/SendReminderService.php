@@ -16,7 +16,7 @@ class SendReminderService {
     private $chunks_insert = 100;
     private $chunks_send_mail = 10;
 
-    private function __construct()
+    public function __construct()
     {
         //
     }
@@ -61,10 +61,12 @@ class SendReminderService {
             foreach ($chunk as $key => $reminderTmp) {
                 // $reminderTmp
                 $userReminder = $reminderTmp->userReminder;
-                $response = $digiralService->sendEmail([
-                    'email' => $reminderTmp,
+                $payload = [
+                    'email' => $userReminder->user->email,
                     'message' => $this->getParseMessage($userReminder->user, $userReminder->refReminder),
-                ]);
+                ];
+                Log::info('payload email : ', $payload);
+                $response = $digiralService->sendEmail($payload);
                 if ($response->status() === 200) {
                     $reminderTmp->update([
                         'status' => StatusTmp::SUCCESS
@@ -83,7 +85,7 @@ class SendReminderService {
         return preg_replace('/\{full_name\}/', $user->full_name, $refReminder->ref_rmndr_message);
     }
 
-    private function getListTz(){
+    public function getListTz(){
         // get list all tz
         $timezones = DateTimeZone::listIdentifiers();
 

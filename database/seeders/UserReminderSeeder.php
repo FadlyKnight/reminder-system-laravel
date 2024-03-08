@@ -6,6 +6,7 @@ use App\Models\RefReminder;
 use App\Models\RefTimezone;
 use App\Models\User;
 use App\Models\UserReminder;
+use App\Services\SendReminderService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -18,7 +19,7 @@ class UserReminderSeeder extends Seeder
     public function run(): void
     {
         $users = [];
-
+        $userReminderService = new SendReminderService();
         for ($i=0; $i < 20; $i++) {
             $users[] = [
                 'first_name' => fake('id')->firstName(),
@@ -36,7 +37,7 @@ class UserReminderSeeder extends Seeder
             UserReminder::create([
                 'user_id' => $user->id,
                 'ref_reminder_id' => $refReminder->id,
-                'timezone' => fake()->timezone(),
+                'timezone' => $userReminderService->getListTz()[random_int(0, count($userReminderService->getListTz())) - 1 ], //fake()->timezone(),
                 'occur_date' => now()->subYear(19)
             ]);
         }
