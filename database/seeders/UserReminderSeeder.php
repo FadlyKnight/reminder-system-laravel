@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 
 class UserReminderSeeder extends Seeder
 {
+    private $totalSeed = 100;
     /**
      * Run the database seeds.
      */
@@ -20,7 +21,7 @@ class UserReminderSeeder extends Seeder
     {
         $users = [];
         $userReminderService = new SendReminderService();
-        for ($i=0; $i < 20; $i++) {
+        for ($i=0; $i < $this->totalSeed; $i++) {
             $users[] = [
                 'first_name' => fake('id')->firstName(),
                 'last_name' => fake('id')->lastName(),
@@ -34,10 +35,12 @@ class UserReminderSeeder extends Seeder
                 $user
             );
             $refReminder = RefReminder::where('ref_rmndr_type', 'birth-day')->firstOrFail();
+            $listTz = $userReminderService->getListTz();
+            $totalTz = count($listTz);
             UserReminder::create([
                 'user_id' => $user->id,
                 'ref_reminder_id' => $refReminder->id,
-                'timezone' => $userReminderService->getListTz()[random_int(0, count($userReminderService->getListTz())) - 1 ], //fake()->timezone(),
+                'timezone' => $listTz[random_int(0, $totalTz - 1)], //fake()->timezone(),
                 'occur_date' => now()->subYear(19)
             ]);
         }

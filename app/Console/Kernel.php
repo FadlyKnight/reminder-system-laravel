@@ -19,7 +19,7 @@ class Kernel extends ConsoleKernel
         //     $sendReminderService = new SendReminderService;
         //     $sendReminderService->handle();
         // })->everyTenMinutes();
-        $schedule->command('app:send-reminder-command')->everyTenMinutes();
+        $schedule->command('app:send-reminder-command')->everyFiveMinutes();
     }
 
     /**

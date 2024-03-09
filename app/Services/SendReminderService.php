@@ -16,6 +16,10 @@ class SendReminderService {
     private $chunks_insert = 100;
     private $chunks_send_mail = 10;
 
+    // get region / tz that around 09:00 - 09:59
+    private $hour = 9;
+    private $minute = 59;
+
     public function __construct()
     {
         //
@@ -29,10 +33,6 @@ class SendReminderService {
         // remove temporary user reminders passed date
         Log::info("START : remove all reminder tmp pass date");
         $this->removeUserReminderTmpPassDate();
-
-        // remove success tmp
-        Log::info("START : remove all success reminder");
-        $this->removeSuccessUserReminderTmp();
 
         // insert user reminder into temporary
         Log::info("START : prepare user reminder");
@@ -55,7 +55,9 @@ class SendReminderService {
     private function sendRemindersEmail(){
         $digiralService = new DigitalEnvisionService();
 
-        $chunks = $this->getListUserTmp()->get()->chunk($this->chunks_send_mail);
+        $listUserTmp = $this->getListUserTmp()->get();
+        Log::info('TOTAL LIST EMAIL NEED TO SEND : '. count($listUserTmp) );
+        $chunks = $listUserTmp->chunk($this->chunks_send_mail);
 
         foreach ($chunks as $chunk) {
             foreach ($chunk as $key => $reminderTmp) {
@@ -65,17 +67,22 @@ class SendReminderService {
                     'email' => $userReminder->user->email,
                     'message' => $this->getParseMessage($userReminder->user, $userReminder->refReminder),
                 ];
-                Log::info('payload email : ', $payload);
-                $response = $digiralService->sendEmail($payload);
-                if ($response->status() === 200) {
-                    $reminderTmp->update([
-                        'status' => StatusTmp::SUCCESS
-                    ]);
-                } else {
-                    $reminderTmp->update([
-                        'status' => StatusTmp::FAILED
-                    ]);
-                    Log::error('ERROR : Send email '.$response->body());
+                Log::info('payload email : ', [ 'payload' => $payload, 'reminderTmp' => $reminderTmp ]);
+                try {
+                    $response = $digiralService->sendEmail($payload);
+                    if ($response->status() === 200) {
+                        $reminderTmp->update([
+                            'status' => StatusTmp::SUCCESS
+                        ]);
+                    } else {
+                        $reminderTmp->update([
+                            'status' => StatusTmp::FAILED
+                        ]);
+                        Log::error('ERROR : Send email '.$response->body());
+                    }
+                } catch (\Exception $th) {
+                    $reminderTmp->update([ 'status' => StatusTmp::FAILED ]);
+                    Log::error('ERROR : Send email '.$th->getMessage());
                 }
             }
         }
@@ -96,7 +103,7 @@ class SendReminderService {
             // Set zona waktu
             $currentTime = Carbon::now();
             $curr = $currentTime->setTimezone($timezone);
-            if ($curr->hour == 9 && $curr->minute <= 59) {
+            if ($curr->hour == $this->hour && $curr->minute <= $this->minute) {
                 $timezonesWithNineAM[] = $timezone;
             }
         }
@@ -109,12 +116,15 @@ class SendReminderService {
     }
 
     private function getUserReminderCurrentDate(){
-        return UserReminder::whereMonth('occur_date', now()->month)->whereDay('occur_date', now()->day);
+        // make sure no duplicate user
+        $userReminderTmps = UserReminderTmp::get();
+        return UserReminder::whereMonth('occur_date', now()->month)->whereDay('occur_date', now()->day)
+            ->whereNotIn('id', $userReminderTmps->pluck('user_reminder_id')->toArray());
     }
 
     private function setUserReminderToTemp(){
         $userReminders = $this->getUserReminderCurrentDate()
-            ->whereIn('timezone', $this->getListTz())
+            ->whereIn('user_reminders.timezone', $this->getListTz())
             ->get()->map(function($data){
             return [
                 'user_reminder_id' => $data->id,
@@ -122,8 +132,8 @@ class SendReminderService {
                 'updated_at' => now()
             ];
         });
+        Log::info('TOTAL INSERT TO REMINDER TEMP : '. count($userReminders) );
         $chunks = $userReminders->chunk($this->chunks_insert);
-
         foreach ($chunks as $chunk) {
             UserReminderTmp::insert($chunk->toArray());
         }
@@ -139,7 +149,7 @@ class SendReminderService {
 
     private function removeSuccessUserReminderTmp(){
         $userReminderTmps = UserReminderTmp::query();
-        $userReminderTmps = $userReminderTmps->where('user_reminder_tmps.status', StatusTmp::SUCCESS );
+        $userReminderTmps = $userReminderTmps->where('status', StatusTmp::SUCCESS );
         $userReminderTmps->delete();
     }
 
