@@ -24,5 +24,6 @@ Route::group([
 ], function(){
     Route::get('/', 'UserController@index');
     Route::post('/', 'UserController@store');
-    Route::delete('/', 'UserController@delete');
+    Route::put('/{id}', 'UserController@update');
+    Route::delete('/{id}', 'UserController@delete');
 });

@@ -51,4 +51,9 @@ class User extends Authenticatable
         return "{$this->first_name} {$this->last_name}";
     }
 
+    //relation
+    public function userReminder(){
+        return $this->hasOne(UserReminder::class, 'user_id', 'id');
+    }
+
 }
