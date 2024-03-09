@@ -69,21 +69,29 @@ class UserController extends Controller
         ]);
     }
 
-    public function update(UpdateUserRequest $request, $id){
-        $user = User::find($id);
+    public function update($id, UpdateUserRequest $request){
+        $user = User::findOrFail($id);
         $user->update([
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'email' => $request->email
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email
         ]);
 
         $refReminder = RefReminder::where('ref_rmndr_type', $request->rmndr_type ?? 'birth-day')->firstOrFail();
-
-        $user->userReminder->update([
-            'ref_reminder_id' =>  $refReminder->id,
-            'timezone' => $request->timezone,
-            'occur_date' => $request->occur_date,
-        ]);
+        if ($user->userReminder) {
+            $user->userReminder->update([
+                'ref_reminder_id' =>  $refReminder->id,
+                'timezone' => $request->timezone,
+                'occur_date' => $request->occur_date,
+            ]);
+        } else {
+            UserReminder::create([
+                'user_id' => $user->id,
+                'ref_reminder_id' =>  $refReminder->id,
+                'timezone' => $request->timezone, // if tz not found then use 'Asia/Jakarta'
+                'occur_date' => $request->occur_date,
+            ]);
+        }
 
         return response()->json([
             'message' => 'success updated user',
